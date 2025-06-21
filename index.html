@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Self-Improvement Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/umd/Recharts.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(-50%, 0, 0);
+            }
+            40%, 43% {
+                transform: translate3d(-50%, -30px, 0);
+            }
+            70% {
+                transform: translate3d(-50%, -15px, 0);
+            }
+            90% {
+                transform: translate3d(-50%, -4px, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } = Recharts;
+
+        const RPGDashboard = () => {
+            const [stats, setStats] = useState({
+                Physical: 320,
+                Psyche: 208,
+                Intel: 192,
+                Spiritual: 272,
+                Core: 306,
+                Craft: 148
+            });
+
+            const [level, setLevel] = useState(19);
+            const [currentXP, setCurrentXP] = useState(1334);
+            const [dailyEnergy, setDailyEnergy] = useState(75);
+            const [hp, setHP] = useState(82);
+            const [mood, setMood] = useState(65);
+            const [concentration, setConcentration] = useState(45);
+            const [motivation, setMotivation] = useState(78);
+            const [streak, setStreak] = useState(13);
+            const [totalHours, setTotalHours] = useState(13);
+            const [totalMinutes, setTotalMinutes] = useState(39);
+
+            const [quests, setQuests] = useState([
+                { id: 1, name: 'Yoga + Flexibility', completed: false, category: 'Physical', xp: 25, statBoost: 'Physical' },
+                { id: 2, name: 'Morning Meditation + Breathwork', completed: true, category: 'Spiritual', xp: 30, statBoost: 'Spiritual' },
+                { id: 3, name: 'Morning Pages + Journaling', completed: false, category: 'Intel', xp: 20, statBoost: 'Intel' },
+                { id: 4, name: 'Workout with the boys', completed: false, category: 'Physical', xp: 35, statBoost: 'Physical' },
+                { id: 5, name: 'Self-care routine', completed: false, category: 'Physical', xp: 15, statBoost: 'Physical' },
+                { id: 6, name: 'Read + Knowledge', completed: false, category: 'Intel', xp: 25, statBoost: 'Intel' },
+                { id: 7, name: 'Networking + Connection', completed: false, category: 'Core', xp: 30, statBoost: 'Core' },
+                { id: 8, name: 'Organize space', completed: false, category: 'Core', xp: 20, statBoost: 'Core' },
+                { id: 9, name: 'Practice Skills', completed: false, category: 'Craft', xp: 25, statBoost: 'Craft' },
+                { id: 10, name: 'Healthy meal prep', completed: false, category: 'Physical', xp: 20, statBoost: 'Physical' },
+                { id: 11, name: 'Supplements + Nutrition', completed: false, category: 'Physical', xp: 15, statBoost: 'Physical' },
+                { id: 12, name: 'Mindfulness practice', completed: false, category: 'Spiritual', xp: 20, statBoost: 'Spiritual' },
+                { id: 13, name: 'Meditate + Inner Peace', completed: false, category: 'Spiritual', xp: 25, statBoost: 'Spiritual' },
+                { id: 14, name: 'Creative hobby time', completed: false, category: 'Craft', xp: 30, statBoost: 'Craft' },
+                { id: 15, name: 'Budget planning', completed: false, category: 'Core', xp: 25, statBoost: 'Core' },
+                { id: 16, name: 'Career planning', completed: false, category: 'Core', xp: 35, statBoost: 'Core' },
+                { id: 17, name: 'Reflection + Gratitude', completed: false, category: 'Spiritual', xp: 15, statBoost: 'Spiritual' },
+                { id: 18, name: 'Skill development', completed: false, category: 'Craft', xp: 30, statBoost: 'Craft' },
+                { id: 19, name: 'Learning + Knowledge', completed: false, category: 'Spiritual', xp: 25, statBoost: 'Spiritual' }
+            ]);
+
+            const [achievements, setAchievements] = useState([]);
+            const [dailyXP, setDailyXP] = useState(0);
+            const [showLevelUp, setShowLevelUp] = useState(false);
+            const [showAchievement, setShowAchievement] = useState('');
+            const [editMode, setEditMode] = useState(false);
+            const [characterName, setCharacterName] = useState('Self-Improvement Angel');
+            const [characterEmoji, setCharacterEmoji] = useState('🌸');
+
+            const maxStat = 400;
+            const totalStats = Object.values(stats).reduce((sum, val) => sum + val, 0);
+
+            // Calculate XP needed for next level
+            const xpForNextLevel = (level + 1) * 500;
+            const xpNeeded = xpForNextLevel - currentXP;
+
+            const radarData = Object.entries(stats).map(([stat, value]) => ({
+                stat,
+                value: (value / maxStat) * 10,
+                fullMark: 10
+            }));
+
+            const completedQuests = quests.filter(q => q.completed).length;
+            const completionRate = Math.round((completedQuests / quests.length) * 100);
+
+            // Check for level up
+            useEffect(() => {
+                if (currentXP >= xpForNextLevel) {
+                    setLevel(prev => prev + 1);
+                    setCurrentXP(prev => prev - xpForNextLevel);
+                    setShowLevelUp(true);
+                    setTimeout(() => setShowLevelUp(false), 3000);
+                }
+            }, [currentXP, xpForNextLevel]);
+
+            // Check for achievements
+            useEffect(() => {
+                const newAchievements = [];
+                
+                if (completedQuests === 5 && !achievements.includes('Quest Master I')) {
+                    newAchievements.push('Quest Master I');
+                }
+                if (completedQuests === 10 && !achievements.includes('Quest Master II')) {
+                    newAchievements.push('Quest Master II');
+                }
+                if (completedQuests === quests.length && !achievements.includes('Perfect Day')) {
+                    newAchievements.push('Perfect Day');
+                }
+                if (streak >= 7 && !achievements.includes('Week Warrior')) {
+                    newAchievements.push('Week Warrior');
+                }
+                if (totalStats >= 2000 && !achievements.includes('Stat Master')) {
+                    newAchievements.push('Stat Master');
+                }
+
+                if (newAchievements.length > 0) {
+                    setAchievements(prev => [...prev, ...newAchievements]);
+                    setShowAchievement(newAchievements[0]);
+                    setTimeout(() => setShowAchievement(''), 3000);
+                }
+            }, [completedQuests, streak, totalStats, achievements, quests.length]);
+
+            const toggleQuest = (id) => {
+                const quest = quests.find(q => q.id === id);
+                const wasCompleted = quest.completed;
+                
+                setQuests(prev => prev.map(quest => 
+                    quest.id === id ? { ...quest, completed: !quest.completed } : quest
+                ));
+
+                if (!wasCompleted) {
+                    // Quest completed - gain XP and stat boost
+                    setCurrentXP(prev => prev + quest.xp);
+                    setDailyXP(prev => prev + quest.xp);
+                    setStats(prev => ({
+                        ...prev,
+                        [quest.statBoost]: prev[quest.statBoost] + Math.floor(quest.xp / 5)
+                    }));
+                    
+                    // Boost related status bars
+                    if (quest.category === 'Physical') {
+                        setHP(prev => Math.min(100, prev + 5));
+                        setDailyEnergy(prev => Math.min(100, prev + 3));
+                    } else if (quest.category === 'Spiritual') {
+                        setMood(prev => Math.min(100, prev + 8));
+                        setMotivation(prev => Math.min(100, prev + 5));
+                    } else if (quest.category === 'Intel') {
+                        setConcentration(prev => Math.min(100, prev + 7));
+                    }
+                } else {
+                    // Quest uncompleted - lose XP and stat boost
+                    setCurrentXP(prev => Math.max(0, prev - quest.xp));
+                    setDailyXP(prev => Math.max(0, prev - quest.xp));
+                    setStats(prev => ({
+                        ...prev,
+                        [quest.statBoost]: Math.max(0, prev[quest.statBoost] - Math.floor(quest.xp / 5))
+                    }));
+                }
+            };
+
+            const rechargeEnergy = () => {
+                setDailyEnergy(prev => Math.min(100, prev + 25));
+                setMood(prev => Math.min(100, prev + 10));
+                setConcentration(prev => Math.min(100, prev + 15));
+            };
+
+            const resetDay = () => {
+                setQuests(prev => prev.map(quest => ({ ...quest, completed: false })));
+                setDailyXP(0);
+                setDailyEnergy(75);
+                setHP(82);
+                setMood(65);
+                setConcentration(45);
+                setMotivation(78);
+            };
+
+            const addCustomQuest = () => {
+                const questName = prompt("Enter new quest name:");
+                const questCategory = prompt("Enter category (Physical, Spiritual, Intel, Core, Craft):");
+                const questXP = parseInt(prompt("Enter XP value (10-50):")) || 25;
+                
+                if (questName && questCategory) {
+                    const newQuest = {
+                        id: Date.now(),
+                        name: questName,
+                        completed: false,
+                        category: questCategory,
+                        xp: Math.min(50, Math.max(10, questXP)),
+                        statBoost: questCategory
+                    };
+                    setQuests(prev => [...prev, newQuest]);
+                }
+            };
+
+            const deleteQuest = (id) => {
+                if (window.confirm("Delete this quest?")) {
+                    setQuests(prev => prev.filter(quest => quest.id !== id));
+                }
+            };
+
+            const editQuest = (id) => {
+                const quest = quests.find(q => q.id === id);
+                const newName = prompt("Edit quest name:", quest.name);
+                const newCategory = prompt("Edit category:", quest.category);
+                const newXP = parseInt(prompt("Edit XP value:", quest.xp)) || quest.xp;
+                
+                if (newName && newCategory) {
+                    setQuests(prev => prev.map(q => 
+                        q.id === id ? {
+                            ...q,
+                            name: newName,
+                            category: newCategory,
+                            xp: Math.min(50, Math.max(10, newXP)),
+                            statBoost: newCategory
+                        } : q
+                    ));
+                }
+            };
+
+            const adjustStat = (statName, amount) => {
+                setStats(prev => ({
+                    ...prev,
+                    [statName]: Math.max(0, Math.min(maxStat, prev[statName] + amount))
+                }));
+            };
+
+            const adjustStatusBar = (barName, amount) => {
+                switch(barName) {
+                    case 'energy':
+                        setDailyEnergy(prev => Math.max(0, Math.min(100, prev + amount)));
+                        break;
+                    case 'hp':
+                        setHP(prev => Math.max(0, Math.min(100, prev + amount)));
+                        break;
+                    case 'mood':
+                        setMood(prev => Math.max(0, Math.min(100, prev + amount)));
+                        break;
+                    case 'concentration':
+                        setConcentration(prev => Math.max(0, Math.min(100, prev + amount)));
+                        break;
+                    case 'motivation':
+                        setMotivation(prev => Math.max(0, Math.min(100, prev + amount)));
+                        break;
+                }
+            };
+
+            const adjustLevel = (amount) => {
+                setLevel(prev => Math.max(1, prev + amount));
+            };
+
+            const adjustXP = (amount) => {
+                setCurrentXP(prev => Math.max(0, prev + amount));
+            };
+
+            const editCharacter = () => {
+                const newName = prompt("Edit character name:", characterName);
+                const newEmoji = prompt("Edit character emoji:", characterEmoji);
+                
+                if (newName) setCharacterName(newName);
+                if (newEmoji) setCharacterEmoji(newEmoji);
+            };
+
+            return React.createElement('div', {
+                className: "min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 text-gray-700 p-6 relative"
+            }, [
+                // Level Up Notification
+                showLevelUp && React.createElement('div', {
+                    key: 'levelup',
+                    className: "fixed top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-4 rounded-full shadow-lg z-50 animate-bounce"
+                }, `🎉 LEVEL UP! You are now Level ${level}! 🎉`),
+
+                // Achievement Notification
+                showAchievement && React.createElement('div', {
+                    key: 'achievement',
+                    className: "fixed top-16 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full shadow-lg z-50"
+                }, `🏆 Achievement Unlocked: ${showAchievement}!`),
+
+                React.createElement('div', {
+                    key: 'main',
+                    className: "max-w-7xl mx-auto grid grid-cols-12 gap-6 min-h-screen"
+                }, [
+                    // Left Sidebar - Character
+                    React.createElement('div', {
+                        key: 'left-sidebar',
+                        className: "col-span-3 space-y-6"
+                    }, [
+                        // Character Portrait
+                        React.createElement('div', {
+                            key: 'character-portrait',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6 shadow-sm"
+                        }, [
+                            React.createElement('div', {
+                                key: 'character-info',
+                                className: "text-center mb-6"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'level-info',
+                                    className: "flex items-center justify-center gap-2 mb-2"
+                                }, [
+                                    React.createElement('div', {
+                                        key: 'level-text',
+                                        className: "text-pink-500 text-lg font-medium"
+                                    }, `Level ${level}`),
+                                    editMode && React.createElement('div', {
+                                        key: 'level-controls',
+                                        className: "flex gap-1"
+                                    }, [
+                                        React.createElement('button', {
+                                            key: 'level-minus',
+                                            onClick: () => adjustLevel(-1),
+                                            className: "bg-red-400 text-white w-6 h-6 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'level-plus',
+                                            onClick: () => adjustLevel(1),
+                                            className: "bg-green-400 text-white w-6 h-6 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ]),
+                                React.createElement('div', {
+                                    key: 'growth-text',
+                                    className: "text-xs text-gray-400"
+                                }, '✨ Growth Journey'),
+                                React.createElement('div', {
+                                    key: 'daily-xp',
+                                    className: "flex items-center justify-center gap-2"
+                                }, [
+                                    React.createElement('div', {
+                                        key: 'xp-text',
+                                        className: "text-xs text-pink-400"
+                                    }, `Daily XP: +${dailyXP}`),
+                                    editMode && React.createElement('div', {
+                                        key: 'xp-controls',
+                                        className: "flex gap-1"
+                                    }, [
+                                        React.createElement('button', {
+                                            key: 'xp-minus',
+                                            onClick: () => adjustXP(-50),
+                                            className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'xp-plus',
+                                            onClick: () => adjustXP(50),
+                                            className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ])
+                            ]),
+
+                            React.createElement('div', {
+                                key: 'character-avatar',
+                                className: "bg-gradient-to-br from-pink-100 to-rose-100 rounded-xl p-6 mb-6 aspect-square flex items-center justify-center border border-pink-200 relative group"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'emoji',
+                                    className: "text-6xl"
+                                }, characterEmoji),
+                                editMode && React.createElement('button', {
+                                    key: 'edit-character',
+                                    onClick: editCharacter,
+                                    className: "absolute top-2 right-2 bg-pink-400 text-white w-6 h-6 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                }, '✏️')
+                            ]),
+
+                            React.createElement('div', {
+                                key: 'character-name',
+                                className: "text-center text-pink-600 font-medium mb-4"
+                            }, characterName),
+
+                            // XP Progress Bar
+                            React.createElement('div', {
+                                key: 'xp-progress',
+                                className: "mb-4"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'xp-text',
+                                    className: "flex justify-between text-xs text-gray-500 mb-1"
+                                }, [
+                                    React.createElement('span', { key: 'current-xp' }, `XP: ${currentXP}`),
+                                    React.createElement('span', { key: 'next-xp' }, `Next: ${xpNeeded}`)
+                                ]),
+                                React.createElement('div', {
+                                    key: 'xp-bar-bg',
+                                    className: "w-full bg-pink-100 rounded-full h-2"
+                                }, [
+                                    React.createElement('div', {
+                                        key: 'xp-bar-fill',
+                                        className: "bg-gradient-to-r from-pink-400 to-rose-500 h-2 rounded-full transition-all duration-500",
+                                        style: { width: `${(currentXP / xpForNextLevel) * 100}%` }
+                                    })
+                                ])
+                            ])
+                        ]),
+
+                        // Status Bars
+                        React.createElement('div', {
+                            key: 'status-bars',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6 space-y-5"
+                        }, [
+                            // Daily Energy
+                            React.createElement('div', { key: 'energy-label', className: "flex items-center justify-between" }, [
+                                React.createElement('span', { key: 'energy-text', className: "text-sm text-rose-500 font-medium" }, '✨ Daily Energy'),
+                                React.createElement('div', { key: 'energy-controls', className: "flex items-center gap-2" }, [
+                                    React.createElement('span', { key: 'energy-value', className: "text-sm text-gray-600" }, `${dailyEnergy}%`),
+                                    editMode && React.createElement('div', { key: 'energy-buttons', className: "flex gap-1" }, [
+                                        React.createElement('button', {
+                                            key: 'energy-minus',
+                                            onClick: () => adjustStatusBar('energy', -10),
+                                            className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'energy-plus',
+                                            onClick: () => adjustStatusBar('energy', 10),
+                                            className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ])
+                            ]),
+                            React.createElement('div', { key: 'energy-bar', className: "w-full bg-pink-100 rounded-full h-2" }, [
+                                React.createElement('div', {
+                                    key: 'energy-fill',
+                                    className: "bg-gradient-to-r from-rose-300 to-pink-400 h-2 rounded-full transition-all duration-300",
+                                    style: { width: `${dailyEnergy}%` }
+                                })
+                            ]),
+
+                            // Wellbeing (HP)
+                            React.createElement('div', { key: 'hp-label', className: "flex items-center justify-between" }, [
+                                React.createElement('span', { key: 'hp-text', className: "text-sm text-rose-500 font-medium" }, '💖 Wellbeing'),
+                                React.createElement('div', { key: 'hp-controls', className: "flex items-center gap-2" }, [
+                                    React.createElement('span', { key: 'hp-value', className: "text-sm text-gray-600" }, `${hp}%`),
+                                    editMode && React.createElement('div', { key: 'hp-buttons', className: "flex gap-1" }, [
+                                        React.createElement('button', {
+                                            key: 'hp-minus',
+                                            onClick: () => adjustStatusBar('hp', -10),
+                                            className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'hp-plus',
+                                            onClick: () => adjustStatusBar('hp', 10),
+                                            className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ])
+                            ]),
+                            React.createElement('div', { key: 'hp-bar', className: "w-full bg-pink-100 rounded-full h-2" }, [
+                                React.createElement('div', {
+                                    key: 'hp-fill',
+                                    className: "bg-gradient-to-r from-pink-300 to-rose-400 h-2 rounded-full transition-all duration-300",
+                                    style: { width: `${hp}%` }
+                                })
+                            ]),
+
+                            // Mood
+                            React.createElement('div', { key: 'mood-label', className: "flex items-center justify-between" }, [
+                                React.createElement('span', { key: 'mood-text', className: "text-sm text-rose-500 font-medium" }, '😊 Mood'),
+                                React.createElement('div', { key: 'mood-controls', className: "flex items-center gap-2" }, [
+                                    React.createElement('span', { key: 'mood-value', className: "text-sm text-gray-600" }, `${mood}%`),
+                                    editMode && React.createElement('div', { key: 'mood-buttons', className: "flex gap-1" }, [
+                                        React.createElement('button', {
+                                            key: 'mood-minus',
+                                            onClick: () => adjustStatusBar('mood', -10),
+                                            className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'mood-plus',
+                                            onClick: () => adjustStatusBar('mood', 10),
+                                            className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ])
+                            ]),
+                            React.createElement('div', { key: 'mood-bar', className: "w-full bg-pink-100 rounded-full h-2" }, [
+                                React.createElement('div', {
+                                    key: 'mood-fill',
+                                    className: "bg-gradient-to-r from-pink-300 to-rose-300 h-2 rounded-full transition-all duration-300",
+                                    style: { width: `${mood}%` }
+                                })
+                            ]),
+
+                            // Focus (Concentration)
+                            React.createElement('div', { key: 'focus-label', className: "flex items-center justify-between" }, [
+                                React.createElement('span', { key: 'focus-text', className: "text-sm text-rose-500 font-medium" }, '🎯 Focus'),
+                                React.createElement('div', { key: 'focus-controls', className: "flex items-center gap-2" }, [
+                                    React.createElement('span', { key: 'focus-value', className: "text-sm text-gray-600" }, `${concentration}%`),
+                                    editMode && React.createElement('div', { key: 'focus-buttons', className: "flex gap-1" }, [
+                                        React.createElement('button', {
+                                            key: 'focus-minus',
+                                            onClick: () => adjustStatusBar('concentration', -10),
+                                            className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'focus-plus',
+                                            onClick: () => adjustStatusBar('concentration', 10),
+                                            className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ])
+                            ]),
+                            React.createElement('div', { key: 'focus-bar', className: "w-full bg-pink-100 rounded-full h-2" }, [
+                                React.createElement('div', {
+                                    key: 'focus-fill',
+                                    className: "bg-gradient-to-r from-rose-300 to-pink-300 h-2 rounded-full transition-all duration-300",
+                                    style: { width: `${concentration}%` }
+                                })
+                            ]),
+
+                            // Motivation
+                            React.createElement('div', { key: 'motivation-label', className: "flex items-center justify-between" }, [
+                                React.createElement('span', { key: 'motivation-text', className: "text-sm text-rose-500 font-medium" }, '🌟 Motivation'),
+                                React.createElement('div', { key: 'motivation-controls', className: "flex items-center gap-2" }, [
+                                    React.createElement('span', { key: 'motivation-value', className: "text-sm text-gray-600" }, `${motivation}%`),
+                                    editMode && React.createElement('div', { key: 'motivation-buttons', className: "flex gap-1" }, [
+                                        React.createElement('button', {
+                                            key: 'motivation-minus',
+                                            onClick: () => adjustStatusBar('motivation', -10),
+                                            className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '-'),
+                                        React.createElement('button', {
+                                            key: 'motivation-plus',
+                                            onClick: () => adjustStatusBar('motivation', 10),
+                                            className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                        }, '+')
+                                    ])
+                                ])
+                            ]),
+                            React.createElement('div', { key: 'motivation-bar', className: "w-full bg-pink-100 rounded-full h-2" }, [
+                                React.createElement('div', {
+                                    key: 'motivation-fillclassName: "bg-gradient-to-r from-pink-300 to-rose-300 h-2 rounded-full transition-all duration-300",
+                                    style: { width: `${motivation}%` }
+                                })
+                            ]),
+
+                            // Energy Recharge Button
+                            React.createElement('button', {
+                                key: 'recharge-button',
+                                onClick: rechargeEnergy,
+                                className: "w-full bg-gradient-to-r from-pink-400 to-rose-500 text-white py-2 rounded-lg text-sm font-medium hover:from-pink-500 hover:to-rose-600 transition-all duration-200 transform hover:scale-105"
+                            }, '⚡ Recharge Energy')
+                        ]),
+
+                        // Quick Stats
+                        React.createElement('div', {
+                            key: 'quick-stats',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6"
+                        }, [
+                            React.createElement('h3', {
+                                key: 'stats-title',
+                                className: "text-lg font-medium text-pink-600 mb-4"
+                            }, '📊 Quick Stats'),
+                            React.createElement('div', {
+                                key: 'stats-grid',
+                                className: "space-y-3"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'streak-stat',
+                                    className: "flex justify-between items-center"
+                                }, [
+                                    React.createElement('span', {
+                                        key: 'streak-label',
+                                        className: "text-sm text-gray-600"
+                                    }, '🔥 Streak'),
+                                    React.createElement('span', {
+                                        key: 'streak-value',
+                                        className: "text-sm font-medium text-pink-500"
+                                    }, `${streak} days`)
+                                ]),
+                                React.createElement('div', {
+                                    key: 'completion-stat',
+                                    className: "flex justify-between items-center"
+                                }, [
+                                    React.createElement('span', {
+                                        key: 'completion-label',
+                                        className: "text-sm text-gray-600"
+                                    }, '✅ Today'),
+                                    React.createElement('span', {
+                                        key: 'completion-value',
+                                        className: "text-sm font-medium text-pink-500"
+                                    }, `${completionRate}%`)
+                                ]),
+                                React.createElement('div', {
+                                    key: 'time-stat',
+                                    className: "flex justify-between items-center"
+                                }, [
+                                    React.createElement('span', {
+                                        key: 'time-label',
+                                        className: "text-sm text-gray-600"
+                                    }, '⏰ Time'),
+                                    React.createElement('span', {
+                                        key: 'time-value',
+                                        className: "text-sm font-medium text-pink-500"
+                                    }, `${totalHours}h ${totalMinutes}m`)
+                                ])
+                            ])
+                        ])
+                    ]),
+
+                    // Main Content Area
+                    React.createElement('div', {
+                        key: 'main-content',
+                        className: "col-span-6 space-y-6"
+                    }, [
+                        // Header with Controls
+                        React.createElement('div', {
+                            key: 'header',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6"
+                        }, [
+                            React.createElement('div', {
+                                key: 'header-content',
+                                className: "flex justify-between items-center"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'header-text'
+                                }, [
+                                    React.createElement('h1', {
+                                        key: 'main-title',
+                                        className: "text-2xl font-semibold text-pink-600"
+                                    }, '✨ Daily Quests'),
+                                    React.createElement('p', {
+                                        key: 'subtitle',
+                                        className: "text-gray-500 text-sm"
+                                    }, 'Level up your life, one quest at a time')
+                                ]),
+                                React.createElement('div', {
+                                    key: 'control-buttons',
+                                    className: "flex gap-2"
+                                }, [
+                                    React.createElement('button', {
+                                        key: 'edit-toggle',
+                                        onClick: () => setEditMode(!editMode),
+                                        className: `px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${editMode ? 'bg-pink-500 text-white' : 'bg-pink-100 text-pink-600 hover:bg-pink-200'}`
+                                    }, editMode ? '✓ Done' : '✏️ Edit'),
+                                    React.createElement('button', {
+                                        key: 'add-quest',
+                                        onClick: addCustomQuest,
+                                        className: "px-3 py-2 bg-rose-400 text-white rounded-lg text-sm font-medium hover:bg-rose-500 transition-all duration-200"
+                                    }, '+ Quest'),
+                                    React.createElement('button', {
+                                        key: 'reset-day',
+                                        onClick: resetDay,
+                                        className: "px-3 py-2 bg-gray-400 text-white rounded-lg text-sm font-medium hover:bg-gray-500 transition-all duration-200"
+                                    }, '🔄 Reset')
+                                ])
+                            ])
+                        ]),
+
+                        // Quest List
+                        React.createElement('div', {
+                            key: 'quest-list',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6"
+                        }, [
+                            React.createElement('div', {
+                                key: 'quest-grid',
+                                className: "space-y-3"
+                            }, quests.map(quest => 
+                                React.createElement('div', {
+                                    key: `quest-${quest.id}`,
+                                    className: `flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${quest.completed 
+                                        ? 'bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200 opacity-75' 
+                                        : 'bg-white border-gray-200 hover:border-pink-200 hover:shadow-sm'}`
+                                }, [
+                                    React.createElement('button', {
+                                        key: `checkbox-${quest.id}`,
+                                        onClick: () => toggleQuest(quest.id),
+                                        className: `w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${quest.completed 
+                                            ? 'bg-gradient-to-r from-pink-400 to-rose-500 border-pink-400' 
+                                            : 'border-gray-300 hover:border-pink-400'}`
+                                    }, quest.completed && React.createElement('span', {
+                                        key: `checkmark-${quest.id}`,
+                                        className: "text-white text-sm"
+                                    }, '✓')),
+
+                                    React.createElement('div', {
+                                        key: `quest-info-${quest.id}`,
+                                        className: "flex-1"
+                                    }, [
+                                        React.createElement('div', {
+                                            key: `quest-name-${quest.id}`,
+                                            className: `font-medium ${quest.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`
+                                        }, quest.name),
+                                        React.createElement('div', {
+                                            key: `quest-details-${quest.id}`,
+                                            className: "flex items-center gap-2 mt-1"
+                                        }, [
+                                            React.createElement('span', {
+                                                key: `category-${quest.id}`,
+                                                className: "text-xs px-2 py-1 rounded-full bg-pink-100 text-pink-600"
+                                            }, quest.category),
+                                            React.createElement('span', {
+                                                key: `xp-${quest.id}`,
+                                                className: "text-xs text-gray-500"
+                                            }, `+${quest.xp} XP`)
+                                        ])
+                                    ]),
+
+                                    editMode && React.createElement('div', {
+                                        key: `edit-controls-${quest.id}`,
+                                        className: "flex gap-1"
+                                    }, [
+                                        React.createElement('button', {
+                                            key: `edit-${quest.id}`,
+                                            onClick: () => editQuest(quest.id),
+                                            className: "w-8 h-8 bg-blue-400 text-white rounded-lg text-xs hover:bg-blue-500 transition-all duration-200"
+                                        }, '✏️'),
+                                        React.createElement('button', {
+                                            key: `delete-${quest.id}`,
+                                            onClick: () => deleteQuest(quest.id),
+                                            className: "w-8 h-8 bg-red-400 text-white rounded-lg text-xs hover:bg-red-500 transition-all duration-200"
+                                        }, '🗑️')
+                                    ])
+                                ])
+                            ))
+                        ])
+                    ]),
+
+                    // Right Sidebar - Stats & Progress
+                    React.createElement('div', {
+                        key: 'right-sidebar',
+                        className: "col-span-3 space-y-6"
+                    }, [
+                        // Radar Chart
+                        React.createElement('div', {
+                            key: 'radar-chart',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6"
+                        }, [
+                            React.createElement('h3', {
+                                key: 'radar-title',
+                                className: "text-lg font-medium text-pink-600 mb-4"
+                            }, '📈 Skill Radar'),
+                            React.createElement('div', {
+                                key: 'radar-container',
+                                className: "h-64"
+                            }, [
+                                React.createElement(ResponsiveContainer, {
+                                    key: 'responsive-container',
+                                    width: "100%",
+                                    height: "100%"
+                                }, [
+                                    React.createElement(RadarChart, {
+                                        key: 'radar-chart-component',
+                                        data: radarData
+                                    }, [
+                                        React.createElement(PolarGrid, {
+                                            key: 'polar-grid',
+                                            stroke: "#f8d7da"
+                                        }),
+                                        React.createElement(PolarAngleAxis, {
+                                            key: 'polar-angle',
+                                            dataKey: "stat",
+                                            tick: { fontSize: 12, fill: "#6b7280" }
+                                        }),
+                                        React.createElement(PolarRadiusAxis, {
+                                            key: 'polar-radius',
+                                            angle: 90,
+                                            domain: [0, 10],
+                                            tick: false
+                                        }),
+                                        React.createElement(Radar, {
+                                            key: 'radar',
+                                            dataKey: "value",
+                                            stroke: "#f472b6",
+                                            fill: "#fce7f3",
+                                            fillOpacity: 0.6,
+                                            strokeWidth: 2
+                                        })
+                                    ])
+                                ])
+                            ])
+                        ]),
+
+                        // Detailed Stats
+                        React.createElement('div', {
+                            key: 'detailed-stats',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6"
+                        }, [
+                            React.createElement('h3', {
+                                key: 'detailed-stats-title',
+                                className: "text-lg font-medium text-pink-600 mb-4"
+                            }, '💪 Detailed Stats'),
+                            React.createElement('div', {
+                                key: 'stats-list',
+                                className: "space-y-4"
+                            }, Object.entries(stats).map(([statName, value]) =>
+                                React.createElement('div', {
+                                    key: `stat-${statName}`,
+                                    className: "space-y-2"
+                                }, [
+                                    React.createElement('div', {
+                                        key: `stat-header-${statName}`,
+                                        className: "flex justify-between items-center"
+                                    }, [
+                                        React.createElement('span', {
+                                            key: `stat-name-${statName}`,
+                                            className: "text-sm font-medium text-gray-700"
+                                        }, statName),
+                                        React.createElement('div', {
+                                            key: `stat-controls-${statName}`,
+                                            className: "flex items-center gap-2"
+                                        }, [
+                                            React.createElement('span', {
+                                                key: `stat-value-${statName}`,
+                                                className: "text-sm text-pink-500 font-medium"
+                                            }, `${value}/${maxStat}`),
+                                            editMode && React.createElement('div', {
+                                                key: `stat-buttons-${statName}`,
+                                                className: "flex gap-1"
+                                            }, [
+                                                React.createElement('button', {
+                                                    key: `stat-minus-${statName}`,
+                                                    onClick: () => adjustStat(statName, -10),
+                                                    className: "bg-red-400 text-white w-5 h-5 rounded text-xs"
+                                                }, '-'),
+                                                React.createElement('button', {
+                                                    key: `stat-plus-${statName}`,
+                                                    onClick: () => adjustStat(statName, 10),
+                                                    className: "bg-green-400 text-white w-5 h-5 rounded text-xs"
+                                                }, '+')
+                                            ])
+                                        ])
+                                    ]),
+                                    React.createElement('div', {
+                                        key: `stat-bar-bg-${statName}`,
+                                        className: "w-full bg-pink-100 rounded-full h-2"
+                                    }, [
+                                        React.createElement('div', {
+                                            key: `stat-bar-fill-${statName}`,
+                                            className: "bg-gradient-to-r from-pink-400 to-rose-500 h-2 rounded-full transition-all duration-300",
+                                            style: { width: `${(value / maxStat) * 100}%` }
+                                        })
+                                    ])
+                                ])
+                            ))
+                        ]),
+
+                        // Achievements
+                        React.createElement('div', {
+                            key: 'achievements',
+                            className: "bg-white/70 backdrop-blur-sm border border-pink-200 rounded-2xl p-6"
+                        }, [
+                            React.createElement('h3', {
+                                key: 'achievements-title',
+                                className: "text-lg font-medium text-pink-600 mb-4"
+                            }, '🏆 Achievements'),
+                            React.createElement('div', {
+                                key: 'achievements-list',
+                                className: "space-y-2"
+                            }, achievements.length > 0 ? achievements.map((achievement, index) =>
+                                React.createElement('div', {
+                                    key: `achievement-${index}`,
+                                    className: "flex items-center gap-2 p-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200"
+                                }, [
+                                    React.createElement('span', {
+                                        key: `achievement-icon-${index}`,
+                                        className: "text-lg"
+                                    }, '🏆'),
+                                    React.createElement('span', {
+                                        key: `achievement-text-${index}`,
+                                        className: "text-sm font-medium text-yellow-700"
+                                    }, achievement)
+                                ])
+                            ) : [
+                                React.createElement('div', {
+                                    key: 'no-achievements',
+                                    className: "text-center text-gray-400 text-sm py-4"
+                                }, 'Complete quests to unlock achievements!')
+                            ])
+                        ])
+                    ])
+                ])
+            ]);
+        };
+
+        ReactDOM.render(React.createElement(RPGDashboard), document.getElementById('root'));
+    </script>
+</body>
+</html>
